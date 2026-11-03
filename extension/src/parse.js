@@ -29,7 +29,7 @@
     if (!/(^|\.)ncl\.com$/i.test(url.hostname)) return null;
     const q = url.searchParams;
 
-    const itineraryCode = first(q, ["itineraryCode"], /^[A-Za-z0-9]{3,40}$/);
+    const itineraryCode = first(q, ["itineraryCode"], /^[A-Za-z0-9._]{3,80}$/);
     if (!itineraryCode) return null;
 
     const packageId = first(q, ["voyageId", "packageId"], /^\d{1,12}$/);

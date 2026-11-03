@@ -41,6 +41,13 @@ test("itinerary page before a sail date is picked yields the itinerary", () => {
   assert.strictEqual(parsed.itineraryCode, "JOY4MIANPINASMIA");
 });
 
+test("itinerary codes with underscores, dots and long names are recognised", () => {
+  for (const code of ["PRIDE_AMER7HNLOGGITOKOANWKHNL", `A.B${"C".repeat(64)}`]) {
+    const parsed = parseNclUrl(`https://www.ncl.com/booking/x?itineraryCode=${code}&voyageId=1`);
+    assert.strictEqual(parsed.itineraryCode, code);
+  }
+});
+
 test("non-sailing pages and other sites are ignored", () => {
   assert.strictEqual(parseNclUrl("https://www.ncl.com/vacations?guests=1"), null);
   assert.strictEqual(parseNclUrl("https://www.ncl.com/cruises/alaska-cruises"), null);
