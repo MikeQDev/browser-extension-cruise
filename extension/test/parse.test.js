@@ -3,7 +3,6 @@ const assert = require("node:assert");
 const {
   parseUrl,
   bookingUrl,
-  siteName,
   chartsUrl,
   canEstimateCabins,
   canChangeGuests,
@@ -166,10 +165,6 @@ test("other lines' non-sailing pages are ignored, and lookalike hosts too", () =
   ]) {
     assert.strictEqual(parseUrl(url), null, url);
   }
-});
-
-test("site names", () => {
-  assert.strictEqual(siteName("royal"), "royalcaribbean.com");
 });
 
 test("cabin estimates are offered only for available NCL sailings with a count", () => {

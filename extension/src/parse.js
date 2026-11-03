@@ -28,7 +28,6 @@
   const LINES = {
     ncl: {
       host: /(^|\.)ncl\.com$/i,
-      site: "ncl.com",
       read: (q) => ({
         itineraryCode: first(q, ["itineraryCode"], ITINERARY),
         packageId: first(q, ["voyageId", "packageId"], PACKAGE),
@@ -51,7 +50,6 @@
     },
     carnival: {
       host: /(^|\.)carnival\.com$/i,
-      site: "carnival.com",
       read: (q) => {
         const date = first(q, ["sailDate"], /^\d{8}$/);
         return {
@@ -75,7 +73,6 @@
     },
     royal: {
       host: /(^|\.)royalcaribbean\.com$/i,
-      site: "royalcaribbean.com",
       read: (q) => ({
         itineraryCode: first(q, ["groupId"], ITINERARY),
         ...datedPackage(first(q, ["packageCode"], PACKAGE), first(q, ["sailDate"], ISO_DATE)),
@@ -96,7 +93,6 @@
     },
     celebrity: {
       host: /(^|\.)celebritycruises\.com$/i,
-      site: "celebritycruises.com",
       read: (q) => ({
         itineraryCode: first(q, ["groupId"], ITINERARY),
         ...datedPackage(
@@ -117,7 +113,6 @@
     },
     msc: {
       host: /(^|\.)msccruisesusa\.com$/i,
-      site: "msccruisesusa.com",
       read: (q) => {
         const itineraryCode = first(q, ["CruiseID"], ITINERARY);
         // One code per sailing, with the date inside it: SE20261116MIAMIA
@@ -131,7 +126,6 @@
     },
     cunard: {
       host: /(^|\.)cunard\.com$/i,
-      site: "cunard.com",
       // One code per sailing, used as both the itinerary and the package
       read: (_q, url) => {
         const code = url.pathname.match(/\/find-a-cruise\/([A-Za-z0-9]{1,20})(\/|$)/)?.[1];
@@ -141,7 +135,6 @@
     },
     princess: {
       host: /(^|\.)princess\.com$/i,
-      site: "princess.com",
       read: (q) => ({
         packageId: first(q, ["voyageCode"], PACKAGE),
         guestCount: first(q, ["guestCount"], GUESTS),
@@ -187,7 +180,6 @@
   }
 
   const bookingUrl = (line, sailing) => LINES[line].booking(sailing);
-  const siteName = (line) => LINES[line].site;
 
   // Same link shape charts' own search UI builds for "price history"
   function chartsUrl(base, line, sailing, guestCount) {
@@ -280,7 +272,6 @@
   const api = {
     parseUrl,
     bookingUrl,
-    siteName,
     chartsUrl,
     canEstimateCabins,
     canChangeGuests,

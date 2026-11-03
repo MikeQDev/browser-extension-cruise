@@ -2,7 +2,6 @@
   const {
     parseUrl,
     bookingUrl,
-    siteName,
     chartsUrl,
     canEstimateCabins,
     canChangeGuests,
@@ -220,11 +219,11 @@
 
   // Prices come from a once-a-day snapshot, and the cruise line's booking page
   // reads a different endpoint, so the page's live price can differ either way
-  function asOfNote(line, date) {
+  function asOfNote(date) {
     return h(
       "div",
       { class: "muted" },
-      `Price as of ${shortDate(date)}. ${siteName(line)}'s live price may differ.`,
+      `Price as of ${shortDate(date)}. Live price may differ.`,
     );
   }
 
@@ -360,7 +359,7 @@
         ),
       ),
       headline,
-      asOfNote(line, data.latestRecordDate),
+      asOfNote(data.latestRecordDate),
       pastGuestNote(line),
       FEATURES.cabinAvailability && canEstimateCabins(line, data) && cabinEstimate(data),
       priceChart(data.history),
@@ -423,7 +422,7 @@
         `${data.shipName} · ${itinerary.duration} nights · `,
         picker,
       ),
-      asOfNote(line, data.latestRecordDate),
+      asOfNote(data.latestRecordDate),
       pastGuestNote(line),
       h("h4", {}, "Upcoming sailings"),
       h(
