@@ -12,7 +12,7 @@
     cardPerNight,
     priceTint,
   } = globalThis.RadarParse;
-  const { CHARTS_URL, FEATURES } = globalThis.RADAR_CONFIG;
+  const { CHARTS_URL, DEALS_URL, FEATURES } = globalThis.RADAR_CONFIG;
   const STORAGE_KEY = "radarCollapsed";
   const MAX_ITINERARY_ROWS = 8;
   const DEFAULT_GUESTS = 2;
@@ -50,6 +50,9 @@
     .estimate { width: 100%; margin-top: 8px; padding: 5px 8px; font: inherit; color: #163354;
       background: #fff; border: 1px solid #163354; border-radius: 6px; cursor: pointer; }
     .estimate:disabled { cursor: default; opacity: 0.7; }
+    .deals { display: block; box-sizing: border-box; width: 100%; margin-top: 10px; padding: 5px 8px;
+      color: #fff; background: #163354; border-radius: 6px; font-weight: 600; text-align: center; }
+    .deals:hover { text-decoration: none; opacity: 0.9; }
   `;
 
   function h(tag, attrs = {}, ...children) {
@@ -222,6 +225,23 @@
     );
   }
 
+  function pastGuestNote(line) {
+    if (line !== "ncl") return null;
+    return h(
+      "div",
+      { class: "muted" },
+      "Prices shown are past guest prices. Log in to your NCL Latitudes account to see them.",
+    );
+  }
+
+  function dealsButton() {
+    return h(
+      "a",
+      { class: "deals", href: DEALS_URL, target: "_blank", rel: "noopener" },
+      "See today's best deals",
+    );
+  }
+
   function affiliationNote() {
     return h(
       "div",
@@ -320,6 +340,7 @@
       ),
       headline,
       asOfNote(line, data.latestRecordDate),
+      pastGuestNote(line),
       FEATURES.cabinAvailability && canEstimateCabins(line, data) && cabinEstimate(data),
       priceChart(data.history),
       h(
@@ -366,6 +387,7 @@
           "Full price history on CabinSaver →",
         ),
       ),
+      dealsButton(),
       affiliationNote(),
     ];
   }
@@ -380,6 +402,7 @@
         `${itinerary.shipCode} · ${itinerary.duration} nights · ${guestCount} guest${guestCount > 1 ? "s" : ""}`,
       ),
       asOfNote(line, data.latestRecordDate),
+      pastGuestNote(line),
       h("h4", {}, "Upcoming sailings"),
       h(
         "ul",
@@ -401,6 +424,7 @@
       ),
       sailings.length > MAX_ITINERARY_ROWS &&
         h("div", { class: "muted" }, `+${sailings.length - MAX_ITINERARY_ROWS} more`),
+      dealsButton(),
       affiliationNote(),
     ];
   }
