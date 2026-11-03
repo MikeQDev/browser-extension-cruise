@@ -119,7 +119,6 @@ test("each line's booking link parses back to the same sailing", () => {
     ["msc", { itineraryCode: "SE20261116MIAMIA" }, { packageId: null, sailDate: "2026-11-16", guestCount: null }],
     ["cunard", { itineraryCode: "M714" }, { packageId: "M714", sailDate: null, guestCount: null }],
     ["princess", { packageId: "A716A", itineraryCode: "ZBS02A" }, { packageId: "A716A", sailDate: null, guestCount: "2" }],
-    ["virgin", { itineraryCode: "7NSJRP", packageId: "SC2803117NSJRP" }, { packageId: "SC2803117NSJRP", guestCount: "2" }],
   ];
   for (const [line, overrides, expected] of cases) {
     const parsed = parseUrl(bookingUrl(line, { ...SAILING, ...overrides }));
@@ -144,14 +143,6 @@ test("a reused package without a date is only an itinerary", () => {
 
 test("itinerary pages without a chosen sailing", () => {
   assert.strictEqual(parseUrl("https://www.carnival.com/itinerary/x?itinCode=LXQ").kind, "itinerary");
-  assert.strictEqual(parseUrl("https://www.virginvoyages.com/book/x?packageCode=7NSJRP").kind, "itinerary");
-});
-
-test("Virgin's cabin comes from the path and links back to it", () => {
-  const url = "https://www.virginvoyages.com/book/voyage-planner/choose-a-cabin/sea-view?packageCode=7NSJRP&voyageId=SC1";
-  assert.strictEqual(parseUrl(url).cabinType, "SEA VIEW");
-  assert.match(bookingUrl("virgin", { ...SAILING, cabinType: "SEA VIEW" }), /choose-a-cabin\/sea-view\?/);
-  assert.match(bookingUrl("virgin", { ...SAILING, cabinType: "ROCKSTAR SUITES" }), /choose-a-cabin\/insider\?/);
 });
 
 test("other lines' non-sailing pages are ignored, and lookalike hosts too", () => {
@@ -161,6 +152,7 @@ test("other lines' non-sailing pages are ignored, and lookalike hosts too", () =
     "https://www.princess.com/",
     "https://www.cunard.com/en-us/find-a-cruise",
     "https://www.msccruisesusa.com/Booking?CruiseID=bad;code",
+    "https://www.virginvoyages.com/book/voyage-planner/choose-a-cabin/insider?packageCode=7NSJRP&voyageId=SC1",
     "https://notcarnival.com/booking?itinCode=LXQ",
     "https://carnival.com.evil.example/booking?itinCode=LXQ",
   ]) {

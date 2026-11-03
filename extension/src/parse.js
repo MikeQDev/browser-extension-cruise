@@ -22,8 +22,6 @@
   const qs = (params) => new URLSearchParams(params).toString();
   const usDate = (iso) => `${iso.slice(5, 7)}${iso.slice(8, 10)}${iso.slice(0, 4)}`;
 
-  const VIRGIN_CABINS = { INSIDER: "insider", "SEA VIEW": "sea-view", "SEA TERRACE": "sea-terrace" };
-
   // read pulls a sailing out of the page URL, using the same parameters the
   // cheapest-ncl booking links carry. A page with neither an itinerary nor a
   // package isn't about a sailing.
@@ -153,27 +151,6 @@
           voyageCode: s.packageId,
           guestCount: s.guestCount || "1",
         })}`,
-    },
-    virgin: {
-      host: /(^|\.)virginvoyages\.com$/i,
-      site: "virginvoyages.com",
-      read: (q, url) => {
-        const slug = url.pathname.match(/\/choose-a-cabin\/([a-z-]{1,20})(\/|$)/i)?.[1];
-        return {
-          itineraryCode: first(q, ["packageCode"], ITINERARY),
-          packageId: first(q, ["voyageId"], PACKAGE),
-          guestCount: first(q, ["sailors"], GUESTS),
-          cabinType: slug ? slug.replaceAll("-", " ") : null,
-        };
-      },
-      booking: (s) => {
-        const slug = VIRGIN_CABINS[s.cabinType] || "insider";
-        return `https://www.virginvoyages.com/book/voyage-planner/choose-a-cabin/${slug}?${qs({
-          packageCode: s.itineraryCode,
-          sailors: s.guestCount || "1",
-          voyageId: s.packageId,
-        })}`;
-      },
     },
   };
 

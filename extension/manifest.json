@@ -20,8 +20,7 @@
         "https://www.celebritycruises.com/*",
         "https://www.msccruisesusa.com/*",
         "https://www.cunard.com/*",
-        "https://www.princess.com/*",
-        "https://www.virginvoyages.com/*"
+        "https://www.princess.com/*"
       ],
       "js": ["src/config.js", "src/parse.js", "src/content.js"],
       "run_at": "document_idle"
