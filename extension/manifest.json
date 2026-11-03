@@ -26,20 +26,5 @@
       "js": ["src/config.js", "src/parse.js", "src/content.js"],
       "run_at": "document_idle"
     }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["icons/icon48.png"],
-      "matches": [
-        "https://www.ncl.com/*",
-        "https://www.carnival.com/*",
-        "https://www.royalcaribbean.com/*",
-        "https://www.celebritycruises.com/*",
-        "https://www.msccruisesusa.com/*",
-        "https://www.cunard.com/*",
-        "https://www.princess.com/*",
-        "https://www.virginvoyages.com/*"
-      ]
-    }
   ]
 }

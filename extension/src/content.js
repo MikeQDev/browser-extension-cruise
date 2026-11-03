@@ -6,16 +6,13 @@
 
   const STYLE = `
     :host { all: initial; }
-    .panel { position: fixed; right: 16px; bottom: 72px; z-index: 2147483647;
+    .panel { position: fixed; right: 16px; bottom: 16px; z-index: 2147483647;
       width: 320px; max-height: 80vh; overflow: auto; background: #fff;
       color: #2c3e50; border: 1px solid #e1e8ed; border-radius: 10px;
       box-shadow: 0 6px 24px #16335433; font: 13px/1.4 system-ui, sans-serif; }
     .head { display: flex; align-items: center; justify-content: space-between;
       padding: 8px 12px; background: #163354; color: #fff; cursor: pointer;
       border-radius: 10px 10px 0 0; font-weight: 600; }
-    .brand { display: flex; align-items: center; gap: 8px; }
-    .logo { width: 20px; height: 20px; padding: 1px; box-sizing: border-box;
-      background: #fff; border-radius: 4px; flex: none; }
     .panel.collapsed .head { border-radius: 10px; }
     .panel.collapsed .body { display: none; }
     .body { padding: 10px 12px 12px; }
@@ -370,12 +367,7 @@
             chrome.storage.local.set({ [STORAGE_KEY]: collapsed });
           },
         },
-        h(
-          "span",
-          { class: "brand" },
-          h("img", { class: "logo", src: chrome.runtime.getURL("icons/icon48.png"), alt: "" }),
-          "Cruise Price History by CabinSaver",
-        ),
+        "Cruise Price History by CabinSaver",
         h("span", { "aria-hidden": "true" }, "▾"),
       ),
       body,
