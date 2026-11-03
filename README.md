@@ -1,10 +1,10 @@
 # Cruise Price History by CabinSaver
 
-Chrome extension that shows a sailing's price history on ncl.com, using the `/api/sailing` and `/api/itinerary` endpoints of the deployed charts service. This repo has no server of its own.
+Chrome extension that shows a sailing's price history on eight cruise lines' sites, using the `/api/sailing` and `/api/itinerary` endpoints of the deployed charts service. This repo has no server of its own.
 
 ## Layout
 
-- `extension/`: Manifest V3 extension. The content script reads the sailing from the ncl.com URL, and the service worker calls charts.
+- `extension/`: Manifest V3 extension. The content script reads the sailing from the page URL, and the service worker calls charts.
 
 ## Run locally
 
@@ -21,18 +21,25 @@ Documented at `GET https://cabinsaver.com/charts/api` and implemented in `charts
 
 | Endpoint | Params | Returns |
 |---|---|---|
-| `GET /charts/api/sailing` | `packageId`, or `itineraryCode` + `sailDate`; optional `guestCount`, `cabinType` | History, low/high/median, 7/30-day change, up to 5 cheapest other dates on the same itinerary |
-| `GET /charts/api/itinerary` | `itineraryCode`; optional `guestCount`, `cabinType` | Upcoming sailings with current price |
+| `GET /charts/api/sailing` | `packageId` (plus `sailDate` for Royal, Celebrity and MSC), or `itineraryCode` + `sailDate`; optional `cruiseLine`, `guestCount`, `cabinType` | History, low/high/median, 7/30-day change, up to 5 cheapest other dates on the same itinerary |
+| `GET /charts/api/itinerary` | `itineraryCode`; optional `cruiseLine`, `guestCount`, `cabinType` | Upcoming sailings with current price |
 
 History covers the last 90 record dates, the same window charts gives anonymous users.
 
 ## Pages recognised
 
-| ncl.com page | Shows |
-|---|---|
-| URL has `itineraryCode` + `voyageId`/`packageId` (booking and vacation-builder flows) | Sailing panel |
-| URL has `itineraryCode` + `departureDate` | Sailing panel |
-| URL has `itineraryCode` only (itinerary page before a date is picked) | Itinerary panel |
+| Site | Sailing panel when the URL has | Itinerary panel when the URL has |
+|---|---|---|
+| ncl.com | `itineraryCode` + `voyageId`/`packageId`/`departureDate` | `itineraryCode` |
+| carnival.com | `sailingID`, or `itinCode` + `sailDate` (MMDDYYYY) | `itinCode` |
+| royalcaribbean.com | `packageCode` + `sailDate`, or `groupId` + `sailDate` | `groupId` |
+| celebritycruises.com | `pID`/`packageCode` + `sDT`/`sailDate`, or `groupId` + `sDT`/`sailDate` | `groupId` |
+| msccruisesusa.com | `CruiseID` | |
+| cunard.com | `/find-a-cruise/{code}` | |
+| princess.com | `voyageCode` | |
+| virginvoyages.com | `voyageId` | `packageCode` |
+
+The URL shapes come from the booking links in `cheapest-ncl/markdown.js`.
 
 ## Deploy
 
@@ -49,4 +56,4 @@ Off in `extension/src/config.js` `FEATURES` because each one needs a change in a
 | `watchSailing` | "Watch this sailing" button that creates a price-drop alert | deal-alerts: per-sailing subscribe endpoint |
 | `cabinAvailability` | Live cabins-left count | count-cabins: CORS and a JSON response the panel can read |
 
-Not built yet: other cruise lines (extend the charts lookups and add a URL parser per site) and badges on ncl.com search results.
+Not built yet: badges on search results.

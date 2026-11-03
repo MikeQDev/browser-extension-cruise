@@ -1,12 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { parseNclUrl, bookingUrl, chartsUrl } = require("../src/parse");
+const { parseUrl, bookingUrl, siteName, chartsUrl } = require("../src/parse");
 
 test("stateroom booking page yields the sailing", () => {
-  const parsed = parseNclUrl(
+  const parsed = parseUrl(
     "https://www.ncl.com/booking/stateroom-offers/stateroom?itineraryCode=GETAWAY7NYCWRFNYC&shipCode=GETAWAY&guestCount=1&voyageId=21571499&selectedStateroomMeta=INSIDE",
   );
   assert.deepStrictEqual(parsed, {
+    line: "ncl",
     kind: "sailing",
     itineraryCode: "GETAWAY7NYCWRFNYC",
     packageId: "21571499",
@@ -17,7 +18,7 @@ test("stateroom booking page yields the sailing", () => {
 });
 
 test("vacation-builder page uses packageId, guests and stateroomTypeCode", () => {
-  const parsed = parseNclUrl(
+  const parsed = parseUrl(
     "https://www.ncl.com/vacation-builder/planning/stateroom?itineraryCode=JOY4MIANPINASMIA&packageId=23379735&guests=2&stateroomTypeCode=balcony&gateway=NONE",
   );
   assert.strictEqual(parsed.packageId, "23379735");
@@ -26,7 +27,7 @@ test("vacation-builder page uses packageId, guests and stateroomTypeCode", () =>
 });
 
 test("departureDate alone is enough for a sailing lookup", () => {
-  const parsed = parseNclUrl(
+  const parsed = parseUrl(
     "https://www.ncl.com/booking/idp/cabin-picker?itineraryCode=ESCAPE7MIABZERTBCZMCMAMIA&departureDate=2025-01-25&guestCount=1",
   );
   assert.strictEqual(parsed.kind, "sailing");
@@ -34,7 +35,7 @@ test("departureDate alone is enough for a sailing lookup", () => {
 });
 
 test("itinerary page before a sail date is picked yields the itinerary", () => {
-  const parsed = parseNclUrl(
+  const parsed = parseUrl(
     "https://www.ncl.com/vacation-builder/planning/cruiseItinerary?itineraryCode=JOY4MIANPINASMIA&guests=1&gateway=NONE",
   );
   assert.strictEqual(parsed.kind, "itinerary");
@@ -43,28 +44,28 @@ test("itinerary page before a sail date is picked yields the itinerary", () => {
 
 test("itinerary codes with underscores, dots and long names are recognised", () => {
   for (const code of ["PRIDE_AMER7HNLOGGITOKOANWKHNL", `A.B${"C".repeat(64)}`]) {
-    const parsed = parseNclUrl(`https://www.ncl.com/booking/x?itineraryCode=${code}&voyageId=1`);
+    const parsed = parseUrl(`https://www.ncl.com/booking/x?itineraryCode=${code}&voyageId=1`);
     assert.strictEqual(parsed.itineraryCode, code);
   }
 });
 
 test("non-sailing pages and other sites are ignored", () => {
-  assert.strictEqual(parseNclUrl("https://www.ncl.com/vacations?guests=1"), null);
-  assert.strictEqual(parseNclUrl("https://www.ncl.com/cruises/alaska-cruises"), null);
+  assert.strictEqual(parseUrl("https://www.ncl.com/vacations?guests=1"), null);
+  assert.strictEqual(parseUrl("https://www.ncl.com/cruises/alaska-cruises"), null);
   // Old detail-page form; ncl.com now redirects it to /vacations?missingItinerary=true
   assert.strictEqual(
-    parseNclUrl("https://www.ncl.com/cruises/4-day-bahamas-JOY4MIANPINASMIA"),
+    parseUrl("https://www.ncl.com/cruises/4-day-bahamas-JOY4MIANPINASMIA"),
     null,
   );
   assert.strictEqual(
-    parseNclUrl("https://evil.example/?itineraryCode=JOY4MIANPINASMIA"),
+    parseUrl("https://evil.example/?itineraryCode=JOY4MIANPINASMIA"),
     null,
   );
-  assert.strictEqual(parseNclUrl("not a url"), null);
+  assert.strictEqual(parseUrl("not a url"), null);
 });
 
 test("malformed params are dropped, not passed through", () => {
-  const parsed = parseNclUrl(
+  const parsed = parseUrl(
     "https://www.ncl.com/booking/x?itineraryCode=JOY4MIA&voyageId=12;drop&guestCount=12",
   );
   assert.strictEqual(parsed.packageId, null);
@@ -74,17 +75,92 @@ test("malformed params are dropped, not passed through", () => {
 
 test("links", () => {
   assert.match(
-    bookingUrl({ itineraryCode: "JOY4MIA", packageId: "1", guestCount: "1", cabinType: "INSIDE" }),
+    bookingUrl("ncl", { itineraryCode: "JOY4MIA", packageId: "1", guestCount: "1", cabinType: "INSIDE" }),
     /^https:\/\/www\.ncl\.com\/vacation-builder\/planning\/stateroom\?itineraryCode=JOY4MIA&packageId=1&guests=1&stateroomTypeCode=INSIDE/,
   );
   const url = new URL(
     chartsUrl(
       "https://cabinsaver.com/charts/",
+      "royal",
       { shipCode: "JOY", sailDate: "2026-11-16", embarkationPortCode: "MIA", disembarkationPortCode: "MIA" },
       1,
     ),
   );
+  assert.strictEqual(url.searchParams.get("cruiseLine"), "royal");
   assert.strictEqual(url.searchParams.get("ships"), "JOY");
   assert.strictEqual(url.searchParams.get("startDate"), "2026-11-16");
   assert.strictEqual(url.searchParams.get("autoLoad"), "true");
+});
+
+const SAILING = {
+  packageId: "WN4BH357",
+  itineraryCode: "WN04MIA-1040267344",
+  sailDate: "2026-11-16",
+  shipCode: "WN",
+  embarkationPortCode: "MIA",
+  destinationCode: "BH",
+  duration: 4,
+  guestCount: 2,
+};
+
+test("each line's booking link parses back to the same sailing", () => {
+  const cases = [
+    ["ncl", { itineraryCode: "JOY4MIA", packageId: "100" }, { packageId: "100", guestCount: "2" }],
+    ["carnival", { itineraryCode: "LXQ", packageId: "22443" }, { packageId: "22443", sailDate: "2026-11-16", guestCount: "2" }],
+    ["royal", {}, { packageId: "WN4BH357", sailDate: "2026-11-16", guestCount: "2" }],
+    ["celebrity", {}, { packageId: "WN4BH357", sailDate: "2026-11-16", guestCount: null }],
+    ["msc", { itineraryCode: "SE20261116MIAMIA" }, { packageId: null, sailDate: "2026-11-16", guestCount: null }],
+    ["cunard", { itineraryCode: "M714" }, { packageId: "M714", sailDate: null, guestCount: null }],
+    ["princess", { packageId: "A716A", itineraryCode: "ZBS02A" }, { packageId: "A716A", sailDate: null, guestCount: "2" }],
+    ["virgin", { itineraryCode: "7NSJRP", packageId: "SC2803117NSJRP" }, { packageId: "SC2803117NSJRP", guestCount: "2" }],
+  ];
+  for (const [line, overrides, expected] of cases) {
+    const parsed = parseUrl(bookingUrl(line, { ...SAILING, ...overrides }));
+    assert.strictEqual(parsed.line, line);
+    assert.strictEqual(parsed.kind, "sailing", line);
+    for (const [key, value] of Object.entries(expected)) {
+      assert.strictEqual(parsed[key], value, `${line} ${key}`);
+    }
+  }
+});
+
+test("a reused package without a date is only an itinerary", () => {
+  for (const url of [
+    "https://www.royalcaribbean.com/room-selection/rooms-and-guests?groupId=WN04MIA-1040267344&packageCode=WN4BH357",
+    "https://www.celebritycruises.com/booking-cruise/selectRoom/stateroomQuantity?groupId=RF03FLL-327727776&pID=RF3BH290",
+  ]) {
+    const parsed = parseUrl(url);
+    assert.strictEqual(parsed.kind, "itinerary");
+    assert.strictEqual(parsed.packageId, null);
+  }
+});
+
+test("itinerary pages without a chosen sailing", () => {
+  assert.strictEqual(parseUrl("https://www.carnival.com/itinerary/x?itinCode=LXQ").kind, "itinerary");
+  assert.strictEqual(parseUrl("https://www.virginvoyages.com/book/x?packageCode=7NSJRP").kind, "itinerary");
+});
+
+test("Virgin's cabin comes from the path and links back to it", () => {
+  const url = "https://www.virginvoyages.com/book/voyage-planner/choose-a-cabin/sea-view?packageCode=7NSJRP&voyageId=SC1";
+  assert.strictEqual(parseUrl(url).cabinType, "SEA VIEW");
+  assert.match(bookingUrl("virgin", { ...SAILING, cabinType: "SEA VIEW" }), /choose-a-cabin\/sea-view\?/);
+  assert.match(bookingUrl("virgin", { ...SAILING, cabinType: "ROCKSTAR SUITES" }), /choose-a-cabin\/insider\?/);
+});
+
+test("other lines' non-sailing pages are ignored, and lookalike hosts too", () => {
+  for (const url of [
+    "https://www.carnival.com/cruise-search?port=MIA",
+    "https://www.royalcaribbean.com/cruises",
+    "https://www.princess.com/",
+    "https://www.cunard.com/en-us/find-a-cruise",
+    "https://www.msccruisesusa.com/Booking?CruiseID=bad;code",
+    "https://notcarnival.com/booking?itinCode=LXQ",
+    "https://carnival.com.evil.example/booking?itinCode=LXQ",
+  ]) {
+    assert.strictEqual(parseUrl(url), null, url);
+  }
+});
+
+test("site names", () => {
+  assert.strictEqual(siteName("royal"), "royalcaribbean.com");
 });

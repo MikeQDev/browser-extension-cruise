@@ -1,6 +1,6 @@
 importScripts("config.js");
 
-// Content-script fetches are subject to ncl.com's CORS context, so lookups go
+// Content-script fetches are subject to the cruise line site's CORS context, so lookups go
 // through the service worker, which host_permissions lets reach the API.
 const CACHE_MS = 10 * 60 * 1000;
 const cache = new Map();

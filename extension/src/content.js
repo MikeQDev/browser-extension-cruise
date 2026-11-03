@@ -1,5 +1,5 @@
 (function () {
-  const { parseNclUrl, bookingUrl, chartsUrl } = globalThis.RadarParse;
+  const { parseUrl, bookingUrl, siteName, chartsUrl } = globalThis.RadarParse;
   const { CHARTS_URL } = globalThis.RADAR_CONFIG;
   const STORAGE_KEY = "radarCollapsed";
   const MAX_ITINERARY_ROWS = 8;
@@ -195,13 +195,13 @@
     return h("div", { class: "chart" }, svg, tip);
   }
 
-  // Prices come from a once-a-day NCL snapshot, and ncl.com's booking page
+  // Prices come from a once-a-day snapshot, and the cruise line's booking page
   // reads a different endpoint, so the page's live price can differ either way
-  function asOfNote(date) {
+  function asOfNote(line, date) {
     return h(
       "div",
       { class: "muted" },
-      `Price as of ${shortDate(date)}. ncl.com's live price may differ.`,
+      `Price as of ${shortDate(date)}. ${siteName(line)}'s live price may differ.`,
     );
   }
 
@@ -212,7 +212,7 @@
     return `${n > 0 ? "+" : "−"}${dollars(Math.abs(n))}`;
   }
 
-  function renderSailing(data, onCabinChange) {
+  function renderSailing(line, data, onCabinChange) {
     const { sailing, current, stats, guestCount } = data;
     const nights = sailing.duration;
     const guests = `${guestCount} guest${guestCount > 1 ? "s" : ""}`;
@@ -234,7 +234,7 @@
     );
 
     return [
-      h("div", { class: "title" }, sailing.title),
+      h("div", { class: "title" }, sailing.title || `${nights}-night sailing`),
       h(
         "div",
         { class: "muted" },
@@ -255,7 +255,7 @@
         ),
       ),
       headline,
-      asOfNote(data.latestRecordDate),
+      asOfNote(line, data.latestRecordDate),
       priceChart(data.history),
       h(
         "div",
@@ -283,12 +283,7 @@
               h(
                 "a",
                 {
-                  href: bookingUrl({
-                    itineraryCode: a.itineraryCode,
-                    packageId: a.packageId,
-                    guestCount,
-                    cabinType: data.cabinType,
-                  }),
+                  href: bookingUrl(line, { ...a, guestCount, cabinType: data.cabinType }),
                 },
                 shortDate(a.sailDate),
               ),
@@ -302,23 +297,23 @@
         { class: "foot" },
         h(
           "a",
-          { href: chartsUrl(CHARTS_URL, sailing, guestCount), target: "_blank", rel: "noopener" },
+          { href: chartsUrl(CHARTS_URL, line, sailing, guestCount), target: "_blank", rel: "noopener" },
           "Full price history on CabinSaver →",
         ),
       ),
     ];
   }
 
-  function renderItinerary(data) {
+  function renderItinerary(line, data) {
     const { itinerary, sailings, guestCount } = data;
     return [
-      h("div", { class: "title" }, itinerary.title),
+      h("div", { class: "title" }, itinerary.title || `${itinerary.duration}-night sailing`),
       h(
         "div",
         { class: "muted" },
         `${itinerary.shipCode} · ${itinerary.duration} nights · ${guestCount} guest${guestCount > 1 ? "s" : ""}`,
       ),
-      asOfNote(data.latestRecordDate),
+      asOfNote(line, data.latestRecordDate),
       h("h4", {}, "Upcoming sailings"),
       h(
         "ul",
@@ -330,12 +325,7 @@
             h(
               "a",
               {
-                href: bookingUrl({
-                  itineraryCode: s.itineraryCode,
-                  packageId: s.packageId,
-                  guestCount,
-                  cabinType: s.cabinType,
-                }),
+                href: bookingUrl(line, { ...s, guestCount }),
               },
               shortDate(s.sailDate, false),
             ),
@@ -401,6 +391,7 @@
     show(h("div", { class: "muted" }, "Checking price history…"));
     const type = parsed.kind === "sailing" ? "sailing" : "itinerary";
     const params = {
+      cruiseLine: parsed.line,
       itineraryCode: parsed.itineraryCode,
       packageId: parsed.packageId,
       sailDate: parsed.sailDate,
@@ -414,16 +405,16 @@
       if (!result.ok) return show(h("div", { class: "muted" }, errorText(result)));
       show(
         type === "sailing"
-          ? renderSailing(result.data, (code) => load(parsed, code))
-          : renderItinerary(result.data),
+          ? renderSailing(parsed.line, result.data, (code) => load(parsed, code))
+          : renderItinerary(parsed.line, result.data),
       );
     });
   }
 
-  // ncl.com is a single-page app, so navigation doesn't reload this script
+  // Cruise line sites are single-page apps, so navigation doesn't reload this script
   let lastKey = null;
   function check() {
-    const parsed = parseNclUrl(location.href);
+    const parsed = parseUrl(location.href);
     const key = parsed ? JSON.stringify(parsed) : null;
     if (key === lastKey) return;
     lastKey = key;

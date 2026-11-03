@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Cruise Price History by CabinSaver",
   "version": "0.1.0",
-  "description": "Price history for Norwegian Cruise Line sailings, right on ncl.com.",
+  "description": "Price history for cruise sailings, right on the cruise line's site.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -13,7 +13,16 @@
   "background": { "service_worker": "src/background.js" },
   "content_scripts": [
     {
-      "matches": ["https://www.ncl.com/*"],
+      "matches": [
+        "https://www.ncl.com/*",
+        "https://www.carnival.com/*",
+        "https://www.royalcaribbean.com/*",
+        "https://www.celebritycruises.com/*",
+        "https://www.msccruisesusa.com/*",
+        "https://www.cunard.com/*",
+        "https://www.princess.com/*",
+        "https://www.virginvoyages.com/*"
+      ],
       "js": ["src/config.js", "src/parse.js", "src/content.js"],
       "run_at": "document_idle"
     }
