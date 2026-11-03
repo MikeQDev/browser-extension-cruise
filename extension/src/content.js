@@ -7,7 +7,7 @@
 
   const STYLE = `
     :host { all: initial; }
-    .panel { position: fixed; right: 16px; bottom: 16px; z-index: 2147483647;
+    .panel { position: fixed; right: 16px; bottom: 72px; z-index: 2147483647;
       width: 320px; max-height: 80vh; overflow: auto; background: #fff;
       color: #2c3e50; border: 1px solid #e1e8ed; border-radius: 10px;
       box-shadow: 0 6px 24px #16335433; font: 13px/1.4 system-ui, sans-serif; }
@@ -209,6 +209,14 @@
     );
   }
 
+  function affiliationNote() {
+    return h(
+      "div",
+      { class: "muted foot" },
+      "Not affiliated with or endorsed by any cruise line or travel agency.",
+    );
+  }
+
   function perNightChange(total, duration) {
     if (total == null) return "–";
     const n = Math.round(total / duration);
@@ -345,6 +353,7 @@
           "Full price history on CabinSaver →",
         ),
       ),
+      affiliationNote(),
     ];
   }
 
@@ -379,6 +388,7 @@
       ),
       sailings.length > MAX_ITINERARY_ROWS &&
         h("div", { class: "muted" }, `+${sailings.length - MAX_ITINERARY_ROWS} more`),
+      affiliationNote(),
     ];
   }
 
