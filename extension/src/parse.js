@@ -227,7 +227,29 @@
     return `${base}?${params}`;
   }
 
-  const api = { parseUrl, bookingUrl, siteName, chartsUrl };
+  // count-cabins has no category code for HAVEN, so it can only answer with an error
+  const canEstimateCabins = (line, data) =>
+    line === "ncl" &&
+    data.status === "available" &&
+    Boolean(data.sailing.packageId) &&
+    data.cabinType !== "HAVEN";
+
+  // Same fallback category codes as the deal finder's "Estimate cabin counts" button
+  const CABIN_CODE_PARAMS = {
+    INSIDE: { insideCodes: "IT,IF,IX" },
+    OCEANVIEW: { oceanviewCodes: "OT,OX" },
+    BALCONY: { balconyCodes: "BT,BF,BX" },
+  };
+
+  const cabinCountParams = ({ sailing, cabinType, guestCount }) => ({
+    shipCode: sailing.shipCode,
+    packageId: sailing.packageId,
+    cabinTypes: cabinType,
+    guests: guestCount,
+    ...CABIN_CODE_PARAMS[cabinType],
+  });
+
+  const api = { parseUrl, bookingUrl, siteName, chartsUrl, canEstimateCabins, cabinCountParams };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.RadarParse = api;
 })(globalThis);

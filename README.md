@@ -1,6 +1,6 @@
 # Cruise Price History by CabinSaver
 
-Chrome extension that shows a sailing's price history on eight cruise lines' sites, using the `/api/sailing` and `/api/itinerary` endpoints of the deployed charts service. This repo has no server of its own.
+Chrome extension that shows a sailing's price history on eight cruise lines' sites, using the `/api/sailing` and `/api/itinerary` endpoints of the deployed charts service. On NCL sailings it also has an "Estimate remaining cabins" button, which calls count-cabins at `/cabinCounts` only when clicked. This repo has no server of its own.
 
 ## Layout
 
@@ -54,6 +54,5 @@ Off in `extension/src/config.js` `FEATURES` because each one needs a change in a
 | Flag | Feature | Needs |
 |---|---|---|
 | `watchSailing` | "Watch this sailing" button that creates a price-drop alert | deal-alerts: per-sailing subscribe endpoint |
-| `cabinAvailability` | Live cabins-left count | count-cabins: CORS and a JSON response the panel can read |
 
 Not built yet: badges on search results.

@@ -5,11 +5,11 @@ importScripts("config.js");
 const CACHE_MS = 10 * 60 * 1000;
 const cache = new Map();
 
-async function lookup(path, params) {
+async function lookup(base, params) {
   const query = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v != null && v !== ""),
   );
-  const url = `${RADAR_CONFIG.API_BASE}${path}?${query}`;
+  const url = `${base}?${query}`;
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.result;
 
@@ -19,7 +19,7 @@ async function lookup(path, params) {
     const body = await res.json().catch(() => ({}));
     result = res.ok
       ? { ok: true, data: body }
-      : { ok: false, status: res.status, error: body.error?.message || res.statusText };
+      : { ok: false, status: res.status, error: body.error?.message || body.message || res.statusText };
   } catch (error) {
     return { ok: false, status: 0, error: "Price history API unreachable" };
   }
@@ -30,11 +30,15 @@ async function lookup(path, params) {
   return result;
 }
 
-const PATHS = { sailing: "/api/sailing", itinerary: "/api/itinerary" };
+const ENDPOINTS = {
+  sailing: `${RADAR_CONFIG.API_BASE}/api/sailing`,
+  itinerary: `${RADAR_CONFIG.API_BASE}/api/itinerary`,
+  cabinCounts: RADAR_CONFIG.CABIN_COUNTS_URL,
+};
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  const path = PATHS[message?.type];
-  if (!path) return false;
-  lookup(path, message.params || {}).then(sendResponse);
+  const base = ENDPOINTS[message?.type];
+  if (!base) return false;
+  lookup(base, message.params || {}).then(sendResponse);
   return true;
 });

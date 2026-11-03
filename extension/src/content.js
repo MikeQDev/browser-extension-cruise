@@ -1,6 +1,7 @@
 (function () {
-  const { parseUrl, bookingUrl, siteName, chartsUrl } = globalThis.RadarParse;
-  const { CHARTS_URL } = globalThis.RADAR_CONFIG;
+  const { parseUrl, bookingUrl, siteName, chartsUrl, canEstimateCabins, cabinCountParams } =
+    globalThis.RadarParse;
+  const { CHARTS_URL, FEATURES } = globalThis.RADAR_CONFIG;
   const STORAGE_KEY = "radarCollapsed";
   const MAX_ITINERARY_ROWS = 8;
 
@@ -33,6 +34,9 @@
     ul { list-style: none; margin: 0; padding: 0; }
     li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; white-space: nowrap; }
     .foot { margin-top: 10px; }
+    .estimate { width: 100%; margin-top: 8px; padding: 5px 8px; font: inherit; color: #163354;
+      background: #fff; border: 1px solid #163354; border-radius: 6px; cursor: pointer; }
+    .estimate:disabled { cursor: default; opacity: 0.7; }
   `;
 
   function h(tag, attrs = {}, ...children) {
@@ -212,6 +216,45 @@
     return `${n > 0 ? "+" : "−"}${dollars(Math.abs(n))}`;
   }
 
+  function cabinEstimateError(result) {
+    if (result?.status === 429) return "Too many lookups. Try again in a minute.";
+    if (result?.status === 400) return "No estimate for this cabin type.";
+    return "Couldn't get an estimate. Try again.";
+  }
+
+  function cabinEstimate(data) {
+    const note = h("div", { class: "muted" });
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "estimate",
+        onclick: () => {
+          button.disabled = true;
+          button.textContent = "Estimating…";
+          note.textContent = "";
+          chrome.runtime.sendMessage(
+            { type: "cabinCounts", params: cabinCountParams(data) },
+            (result) => {
+              const count = result?.ok
+                ? result.data.results?.[data.cabinType]?.["cabin_count.total"]
+                : null;
+              if (count != null) {
+                button.textContent = `Estimated remaining ${data.cabinType} cabins: ${count}`;
+                return;
+              }
+              button.disabled = false;
+              button.textContent = "Estimate remaining cabins";
+              note.textContent = cabinEstimateError(result);
+            },
+          );
+        },
+      },
+      "Estimate remaining cabins",
+    );
+    return [button, note];
+  }
+
   function renderSailing(line, data, onCabinChange) {
     const { sailing, current, stats, guestCount } = data;
     const nights = sailing.duration;
@@ -256,6 +299,7 @@
       ),
       headline,
       asOfNote(line, data.latestRecordDate),
+      FEATURES.cabinAvailability && canEstimateCabins(line, data) && cabinEstimate(data),
       priceChart(data.history),
       h(
         "div",

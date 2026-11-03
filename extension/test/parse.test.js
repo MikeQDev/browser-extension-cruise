@@ -1,6 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { parseUrl, bookingUrl, siteName, chartsUrl } = require("../src/parse");
+const {
+  parseUrl,
+  bookingUrl,
+  siteName,
+  chartsUrl,
+  canEstimateCabins,
+  cabinCountParams,
+} = require("../src/parse");
 
 test("stateroom booking page yields the sailing", () => {
   const parsed = parseUrl(
@@ -163,4 +170,31 @@ test("other lines' non-sailing pages are ignored, and lookalike hosts too", () =
 
 test("site names", () => {
   assert.strictEqual(siteName("royal"), "royalcaribbean.com");
+});
+
+test("cabin estimates are offered only for available NCL sailings with a count", () => {
+  const data = { status: "available", cabinType: "INSIDE", sailing: { packageId: "23379735" } };
+  assert.strictEqual(canEstimateCabins("ncl", data), true);
+  assert.strictEqual(canEstimateCabins("carnival", data), false);
+  assert.strictEqual(canEstimateCabins("ncl", { ...data, status: "sold_out" }), false);
+  assert.strictEqual(canEstimateCabins("ncl", { ...data, status: "not_listed" }), false);
+  assert.strictEqual(canEstimateCabins("ncl", { ...data, cabinType: "HAVEN" }), false);
+  assert.strictEqual(canEstimateCabins("ncl", { ...data, sailing: {} }), false);
+});
+
+test("cabin count params carry the deal finder's fallback codes", () => {
+  const sailing = { shipCode: "JOY", packageId: "23379735" };
+  assert.deepStrictEqual(cabinCountParams({ sailing, cabinType: "INSIDE", guestCount: 2 }), {
+    shipCode: "JOY",
+    packageId: "23379735",
+    cabinTypes: "INSIDE",
+    guests: 2,
+    insideCodes: "IT,IF,IX",
+  });
+  assert.deepStrictEqual(cabinCountParams({ sailing, cabinType: "STUDIO", guestCount: 1 }), {
+    shipCode: "JOY",
+    packageId: "23379735",
+    cabinTypes: "STUDIO",
+    guests: 1,
+  });
 });
