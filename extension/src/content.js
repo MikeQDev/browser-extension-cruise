@@ -49,6 +49,7 @@
     ul { list-style: none; margin: 0; padding: 0; }
     li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; white-space: nowrap; }
     .foot { margin-top: 10px; }
+    select.guests { width: auto; margin: 0; padding: 0 2px; font-size: 12px; }
     .estimate { width: 100%; margin-top: 8px; padding: 5px 8px; font: inherit; color: #163354;
       background: #fff; border: 1px solid #163354; border-radius: 6px; cursor: pointer; }
     .estimate:disabled { cursor: default; opacity: 0.7; }
@@ -228,20 +229,20 @@
   }
 
   function guestPicker(line, guestCount, onChange) {
-    if (!canChangeGuests(line)) return null;
     const current = String(guestCount);
+    const noun = current === "1" ? "guest" : "guests";
+    if (!canChangeGuests(line)) return `${current} ${noun}`;
     // A URL can ask for more guests than the data covers, and the picker must still show it
     const options = GUEST_OPTIONS.includes(current) ? GUEST_OPTIONS : [...GUEST_OPTIONS, current];
     return h(
-      "select",
-      { "aria-label": "Guests", onchange: (e) => onChange(e.target.value) },
-      options.map((n) =>
-        h(
-          "option",
-          { value: n, selected: n === current ? "" : null },
-          `${n} guest${n === "1" ? "" : "s"}`,
-        ),
+      "span",
+      {},
+      h(
+        "select",
+        { class: "guests", "aria-label": "Guests", onchange: (e) => onChange(e.target.value) },
+        options.map((n) => h("option", { value: n, selected: n === current ? "" : null }, n)),
       ),
+      ` ${noun}`,
     );
   }
 
@@ -319,7 +320,6 @@
   function renderSailing(line, data, onCabinChange, picker) {
     const { sailing, current, stats, guestCount } = data;
     const nights = sailing.duration;
-    const guests = `${guestCount} guest${guestCount > 1 ? "s" : ""}`;
 
     let headline;
     if (data.status === "sold_out") headline = h("div", { class: "price" }, "Sold out");
@@ -342,9 +342,9 @@
       h(
         "div",
         { class: "muted" },
-        `${data.shipName} · ${shortDate(sailing.sailDate)} · ${nights} nights · ${guests}`,
+        `${data.shipName} · ${shortDate(sailing.sailDate)} · ${nights} nights · `,
+        picker,
       ),
-      picker,
       h(
         "select",
         {
@@ -420,9 +420,9 @@
       h(
         "div",
         { class: "muted" },
-        `${data.shipName} · ${itinerary.duration} nights · ${guestCount} guest${guestCount > 1 ? "s" : ""}`,
+        `${data.shipName} · ${itinerary.duration} nights · `,
+        picker,
       ),
-      picker,
       asOfNote(line, data.latestRecordDate),
       pastGuestNote(line),
       h("h4", {}, "Upcoming sailings"),
@@ -499,7 +499,10 @@
 
   // The picker stays up on failure, since a guest count with no data would otherwise strand the panel
   function showFailure(result, picker) {
-    show(h("div", { class: "muted" }, result ? errorText(result) : "Can't reach CabinSaver right now."), picker);
+    show(
+      h("div", { class: "muted" }, result ? errorText(result) : "Can't reach CabinSaver right now."),
+      picker && h("div", { class: "muted" }, picker),
+    );
   }
 
   let requestSeq = 0;
