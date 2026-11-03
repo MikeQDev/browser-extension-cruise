@@ -301,7 +301,7 @@
                 ? result.data.results?.[data.cabinType]?.["cabin_count.total"]
                 : null;
               if (count != null) {
-                button.textContent = `Estimated remaining ${data.cabinType} cabins: ${count}`;
+                button.textContent = `Estimated remaining ${data.cabinNames[data.cabinType] || data.cabinType} cabins: ${count}`;
                 return;
               }
               button.disabled = false;
@@ -342,7 +342,7 @@
       h(
         "div",
         { class: "muted" },
-        `${sailing.shipCode} · ${shortDate(sailing.sailDate)} · ${nights} nights · ${guests}`,
+        `${data.shipName} · ${shortDate(sailing.sailDate)} · ${nights} nights · ${guests}`,
       ),
       picker,
       h(
@@ -355,7 +355,7 @@
           h(
             "option",
             { value: c.code, selected: c.code === data.cabinType ? "" : null },
-            `${c.code} · ${c.perNight == null ? "no price" : `${dollars(c.perNight)}/night`}`,
+            `${data.cabinNames[c.code]} · ${c.perNight == null ? "no price" : `${dollars(c.perNight)}/night`}`,
           ),
         ),
       ),
@@ -420,7 +420,7 @@
       h(
         "div",
         { class: "muted" },
-        `${itinerary.shipCode} · ${itinerary.duration} nights · ${guestCount} guest${guestCount > 1 ? "s" : ""}`,
+        `${data.shipName} · ${itinerary.duration} nights · ${guestCount} guest${guestCount > 1 ? "s" : ""}`,
       ),
       picker,
       asOfNote(line, data.latestRecordDate),

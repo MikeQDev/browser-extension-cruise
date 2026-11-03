@@ -4,6 +4,7 @@ globalThis.RADAR_CONFIG = {
   API_BASE: "https://cabinsaver.com/charts",
   CHARTS_URL: "https://cabinsaver.com/charts/",
   CABIN_COUNTS_URL: "https://cabinsaver.com/cabinCounts",
+  METADATA_BASE_URL: "https://cabinsaver.com/shared/data/",
   DEALS_URL:
     "https://cabinsaver.com/deals/?utm_source=browser_extension&utm_medium=extension&utm_campaign=best_deals",
 

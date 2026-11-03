@@ -26,6 +26,8 @@ Documented at `GET https://cabinsaver.com/charts/api` and implemented in `charts
 
 History covers the last 90 record dates, the same window charts gives anonymous users.
 
+Ship and cabin names come from the public metadata files at `https://cabinsaver.com/shared/data/`. A code shows as is if it has no name there.
+
 ## Pages recognised
 
 | Site | Sailing panel when the URL has | Itinerary panel when the URL has |

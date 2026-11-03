@@ -1,4 +1,4 @@
-importScripts("config.js");
+importScripts("config.js", "parse.js");
 
 // Content-script fetches are subject to the cruise line site's CORS context, so lookups go
 // through the service worker, which host_permissions lets reach the API.
@@ -36,9 +36,18 @@ const ENDPOINTS = {
   cabinCounts: RADAR_CONFIG.CABIN_COUNTS_URL,
 };
 
+async function lookupWithNames(base, params) {
+  const metadataUrl = RADAR_CONFIG.METADATA_BASE_URL + RadarParse.metadataFile(params.cruiseLine);
+  const [result, metadata] = await Promise.all([lookup(base, params), lookup(metadataUrl, {})]);
+  if (!result.ok) return result;
+  return { ...result, data: RadarParse.withNames(result.data, metadata.ok ? metadata.data : null) };
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const base = ENDPOINTS[message?.type];
   if (!base) return false;
-  lookup(base, message.params || {}).then(sendResponse);
+  const params = message.params || {};
+  const named = message.type === "sailing" || message.type === "itinerary";
+  (named ? lookupWithNames(base, params) : lookup(base, params)).then(sendResponse);
   return true;
 });

@@ -211,6 +211,26 @@
     Boolean(data.sailing.packageId) &&
     data.cabinType !== "HAVEN";
 
+  // NCL's metadata file predates the per-line naming
+  const metadataFile = (line) => (line === "ncl" ? "metadata.json" : `${line}-metadata.json`);
+
+  // Falls back to the codes, so a missing metadata file can't break the panel.
+  // Metadata keys vary in case by line, while the API's cabin codes are upper-cased.
+  function withNames(data, metadata) {
+    const shipCode = data.sailing?.shipCode ?? data.itinerary?.shipCode;
+    const codes = (data.cabinTypes || []).map((c) => c.code);
+    // Only Celebrity's river ships sell River View, and they name some shared codes differently
+    const river = codes.includes("R") ? metadata?.cabinTypesRiver : null;
+    const names = new Map(
+      Object.entries({ ...metadata?.cabinTypes, ...river }).map(([k, v]) => [k.toUpperCase(), v]),
+    );
+    return {
+      ...data,
+      shipName: metadata?.ships?.[shipCode]?.name || shipCode,
+      cabinNames: Object.fromEntries(codes.map((c) => [c, names.get(c) || c])),
+    };
+  }
+
   // MSC's data only exists for 2 guests
   const canChangeGuests = (line) => line !== "msc";
 
@@ -264,6 +284,8 @@
     chartsUrl,
     canEstimateCabins,
     canChangeGuests,
+    metadataFile,
+    withNames,
     cabinCountParams,
     isNclSearchPage,
     cheapestSailing,

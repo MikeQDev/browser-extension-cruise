@@ -7,6 +7,8 @@ const {
   chartsUrl,
   canEstimateCabins,
   canChangeGuests,
+  metadataFile,
+  withNames,
   cabinCountParams,
   isNclSearchPage,
   cheapestSailing,
@@ -246,4 +248,45 @@ test("the guests param is read from the search page URL", () => {
 test("every line but MSC can change guest count", () => {
   assert.strictEqual(canChangeGuests("ncl"), true);
   assert.strictEqual(canChangeGuests("msc"), false);
+});
+
+const METADATA = {
+  ships: { AX: { name: "Celebrity Apex" }, RB: { name: "Celebrity Boundless" } },
+  cabinTypes: { b: "Veranda", i: "Inside" },
+  cabinTypesRiver: { b: "Balcony", r: "River View" },
+};
+
+test("ship and cabin codes translate to names, ignoring metadata key case", () => {
+  const named = withNames(
+    { sailing: { shipCode: "AX" }, cabinTypes: [{ code: "B" }, { code: "I" }] },
+    METADATA,
+  );
+  assert.strictEqual(named.shipName, "Celebrity Apex");
+  assert.deepStrictEqual(named.cabinNames, { B: "Veranda", I: "Inside" });
+});
+
+test("river sailings use the river cabin names", () => {
+  const named = withNames(
+    { sailing: { shipCode: "RB" }, cabinTypes: [{ code: "B" }, { code: "R" }] },
+    METADATA,
+  );
+  assert.deepStrictEqual(named.cabinNames, { B: "Balcony", R: "River View" });
+});
+
+test("itinerary responses get a ship name", () => {
+  assert.strictEqual(withNames({ itinerary: { shipCode: "AX" } }, METADATA).shipName, "Celebrity Apex");
+});
+
+test("unknown codes and missing metadata fall back to the code", () => {
+  const data = { sailing: { shipCode: "ZZ" }, cabinTypes: [{ code: "Q" }] };
+  for (const metadata of [METADATA, null]) {
+    const named = withNames(data, metadata);
+    assert.strictEqual(named.shipName, "ZZ");
+    assert.deepStrictEqual(named.cabinNames, { Q: "Q" });
+  }
+});
+
+test("NCL's metadata file has no line prefix", () => {
+  assert.strictEqual(metadataFile("ncl"), "metadata.json");
+  assert.strictEqual(metadataFile("royal"), "royal-metadata.json");
 });
