@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Cruise Price History by CabinSaver",
+  "version": "0.1.0",
+  "description": "Price history and deal ratings for Norwegian Cruise Line sailings, right on ncl.com.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:8131/*", "https://cabinsaver.com/*"],
+  "background": { "service_worker": "src/background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.ncl.com/*"],
+      "js": ["src/config.js", "src/parse.js", "src/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

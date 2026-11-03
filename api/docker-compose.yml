@@ -1,0 +1,11 @@
+services:
+  radar-api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8131:3000"
+    environment:
+      - MAX_FILES=90
+      - GUEST_COUNTS=1,2
+    volumes:
+      - /var/lib/cruise/sailing-data:/var/lib/cruise/sailing-data:ro
