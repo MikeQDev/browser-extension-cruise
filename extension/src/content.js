@@ -5,6 +5,7 @@
     siteName,
     chartsUrl,
     canEstimateCabins,
+    canChangeGuests,
     cabinCountParams,
     isNclSearchPage,
     cheapestSailing,
@@ -16,6 +17,7 @@
   const STORAGE_KEY = "radarCollapsed";
   const MAX_ITINERARY_ROWS = 8;
   const DEFAULT_GUESTS = 2;
+  const GUEST_OPTIONS = ["1", "2", "3", "4"];
   const CARD_NOTE = "Showing this itinerary's cheapest upcoming date.";
 
   const STYLE = `
@@ -225,6 +227,24 @@
     );
   }
 
+  function guestPicker(line, guestCount, onChange) {
+    if (!canChangeGuests(line)) return null;
+    const current = String(guestCount);
+    // A URL can ask for more guests than the data covers, and the picker must still show it
+    const options = GUEST_OPTIONS.includes(current) ? GUEST_OPTIONS : [...GUEST_OPTIONS, current];
+    return h(
+      "select",
+      { "aria-label": "Guests", onchange: (e) => onChange(e.target.value) },
+      options.map((n) =>
+        h(
+          "option",
+          { value: n, selected: n === current ? "" : null },
+          `${n} guest${n === "1" ? "" : "s"}`,
+        ),
+      ),
+    );
+  }
+
   function pastGuestNote(line) {
     if (line !== "ncl") return null;
     return h(
@@ -296,7 +316,7 @@
     return [button, note];
   }
 
-  function renderSailing(line, data, onCabinChange) {
+  function renderSailing(line, data, onCabinChange, picker) {
     const { sailing, current, stats, guestCount } = data;
     const nights = sailing.duration;
     const guests = `${guestCount} guest${guestCount > 1 ? "s" : ""}`;
@@ -324,6 +344,7 @@
         { class: "muted" },
         `${sailing.shipCode} · ${shortDate(sailing.sailDate)} · ${nights} nights · ${guests}`,
       ),
+      picker,
       h(
         "select",
         {
@@ -392,7 +413,7 @@
     ];
   }
 
-  function renderItinerary(line, data) {
+  function renderItinerary(line, data, picker) {
     const { itinerary, sailings, guestCount } = data;
     return [
       h("div", { class: "title" }, itinerary.title || `${itinerary.duration}-night sailing`),
@@ -401,6 +422,7 @@
         { class: "muted" },
         `${itinerary.shipCode} · ${itinerary.duration} nights · ${guestCount} guest${guestCount > 1 ? "s" : ""}`,
       ),
+      picker,
       asOfNote(line, data.latestRecordDate),
       pastGuestNote(line),
       h("h4", {}, "Upcoming sailings"),
@@ -475,33 +497,42 @@
     body.replaceChildren(...children.flat(Infinity).filter((c) => c != null && c !== false));
   }
 
-  function showFailure(result) {
-    show(h("div", { class: "muted" }, result ? errorText(result) : "Can't reach CabinSaver right now."));
+  // The picker stays up on failure, since a guest count with no data would otherwise strand the panel
+  function showFailure(result, picker) {
+    show(h("div", { class: "muted" }, result ? errorText(result) : "Can't reach CabinSaver right now."), picker);
   }
 
   let requestSeq = 0;
+  // The user's pick beats the page's guest count until the booking URL changes
+  let guestChoice = null;
 
   function load(parsed, cabinType) {
     const seq = ++requestSeq;
     show(h("div", { class: "muted" }, "Checking price history…"));
     const type = parsed.kind === "sailing" ? "sailing" : "itinerary";
+    const guestCount = guestChoice || parsed.guestCount || DEFAULT_GUESTS;
+    const picker = guestPicker(parsed.line, guestCount, (n) => {
+      guestChoice = n;
+      if (parsed.reopen) parsed.reopen();
+      else load(parsed, cabinType);
+    });
     const params = {
       cruiseLine: parsed.line,
       itineraryCode: parsed.itineraryCode,
       packageId: parsed.packageId,
       sailDate: parsed.sailDate,
-      guestCount: parsed.guestCount || DEFAULT_GUESTS,
+      guestCount,
       cabinType: cabinType || parsed.cabinType,
     };
     chrome.runtime.sendMessage({ type, params }, (result) => {
       // A newer navigation or cabin switch already replaced this request
       if (seq !== requestSeq) return;
-      if (!result?.ok) return showFailure(result);
+      if (!result?.ok) return showFailure(result, picker);
       show(
         parsed.note && h("div", { class: "muted" }, parsed.note),
         type === "sailing"
-          ? renderSailing(parsed.line, result.data, (code) => load(parsed, code))
-          : renderItinerary(parsed.line, result.data),
+          ? renderSailing(parsed.line, result.data, (code) => load(parsed, code), picker)
+          : renderItinerary(parsed.line, result.data, picker),
       );
     });
   }
@@ -518,7 +549,13 @@
     cardPanelPath = location.pathname;
     const seq = ++requestSeq;
     show(h("div", { class: "muted" }, "Checking price history…"));
-    const guestCount = guestsParam(location.href) || DEFAULT_GUESTS;
+    const guestCount = guestChoice || guestsParam(location.href) || DEFAULT_GUESTS;
+    // Reopen rather than reload, since the cheapest date can differ per guest count
+    const reopen = () => openFromCard(link);
+    const picker = guestPicker(parsed.line, guestCount, (n) => {
+      guestChoice = n;
+      reopen();
+    });
     const params = {
       cruiseLine: parsed.line,
       itineraryCode: parsed.itineraryCode,
@@ -526,9 +563,9 @@
     };
     chrome.runtime.sendMessage({ type: "itinerary", params }, (result) => {
       if (seq !== requestSeq) return;
-      if (!result?.ok) return showFailure(result);
+      if (!result?.ok) return showFailure(result, picker);
       const sailing = cheapestSailing(result.data.sailings);
-      if (!sailing) return show(renderItinerary(parsed.line, result.data));
+      if (!sailing) return show(renderItinerary(parsed.line, result.data, picker));
       load({
         line: parsed.line,
         kind: "sailing",
@@ -537,6 +574,7 @@
         sailDate: sailing.sailDate,
         guestCount,
         note: CARD_NOTE,
+        reopen,
       });
     });
   }
@@ -606,6 +644,7 @@
     }
     if (key === lastKey) return;
     lastKey = key;
+    guestChoice = null;
     cardPanelPath = null;
     if (!parsed) {
       host?.remove();

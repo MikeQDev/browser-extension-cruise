@@ -6,6 +6,7 @@ const {
   siteName,
   chartsUrl,
   canEstimateCabins,
+  canChangeGuests,
   cabinCountParams,
   isNclSearchPage,
   cheapestSailing,
@@ -240,4 +241,9 @@ test("the guests param is read from the search page URL", () => {
   assert.strictEqual(guestsParam("https://www.ncl.com/vacations?guests=3"), "3");
   assert.strictEqual(guestsParam("https://www.ncl.com/vacations"), null);
   assert.strictEqual(guestsParam("https://www.ncl.com/vacations?guests=abc"), null);
+});
+
+test("every line but MSC can change guest count", () => {
+  assert.strictEqual(canChangeGuests("ncl"), true);
+  assert.strictEqual(canChangeGuests("msc"), false);
 });

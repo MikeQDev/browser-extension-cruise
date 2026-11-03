@@ -211,6 +211,9 @@
     Boolean(data.sailing.packageId) &&
     data.cabinType !== "HAVEN";
 
+  // MSC's data only exists for 2 guests
+  const canChangeGuests = (line) => line !== "msc";
+
   // Same fallback category codes as the deal finder's "Estimate cabin counts" button
   const CABIN_CODE_PARAMS = {
     INSIDE: { insideCodes: "IT,IF,IX" },
@@ -260,6 +263,7 @@
     siteName,
     chartsUrl,
     canEstimateCabins,
+    canChangeGuests,
     cabinCountParams,
     isNclSearchPage,
     cheapestSailing,
