@@ -1,7 +1,7 @@
 // Shared by the service worker (importScripts) and the content scripts.
 globalThis.RADAR_CONFIG = {
   // Must also be listed in manifest.json host_permissions
-  API_BASE: "http://localhost:8131",
+  API_BASE: "https://cabinsaver.com/charts",
   CHARTS_URL: "https://cabinsaver.com/charts/",
 
   // Future scope: each needs a change in another project, so it stays off

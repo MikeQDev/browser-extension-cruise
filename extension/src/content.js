@@ -19,9 +19,6 @@
     .muted { color: #64748b; font-size: 12px; }
     .title { font-weight: 600; margin-bottom: 2px; }
     .price { font-size: 24px; font-weight: 700; color: #1e293b; }
-    .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px;
-      font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; margin-top: 6px; }
     .stats b { color: #1e293b; }
     select { width: 100%; margin: 8px 0; padding: 4px; font: inherit; }
@@ -31,7 +28,6 @@
     a:hover { text-decoration: underline; }
     ul { list-style: none; margin: 0; padding: 0; }
     li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; white-space: nowrap; }
-    li .badge { font-size: 11px; padding: 1px 6px; margin-left: 4px; }
     .foot { margin-top: 10px; }
   `;
 
@@ -57,22 +53,6 @@
       year: withYear ? "numeric" : undefined,
       timeZone: "UTC",
     });
-
-  function badgeColor(score) {
-    if (score == null) return "#64748b";
-    if (score >= 75) return "#15803d";
-    if (score >= 50) return "#0f766e";
-    if (score >= 25) return "#b45309";
-    return "#b91c1c";
-  }
-
-  function badge(deal) {
-    return h(
-      "span",
-      { class: "badge", style: `background:${badgeColor(deal.score)}` },
-      deal.label,
-    );
-  }
 
   // Per-night line with a dot at the tracked low; sold-out days break the line
   function sparkline(history) {
@@ -132,7 +112,7 @@
   }
 
   function renderSailing(data, onCabinChange) {
-    const { sailing, current, stats, deal, guestCount } = data;
+    const { sailing, current, stats, guestCount } = data;
     const nights = sailing.duration;
     const guests = `${guestCount} guest${guestCount > 1 ? "s" : ""}`;
 
@@ -173,7 +153,7 @@
           ),
         ),
       ),
-      h("div", { class: "row" }, headline, badge(deal)),
+      headline,
       asOfNote(data.latestRecordDate),
       sparkline(data.history),
       h(
@@ -203,7 +183,7 @@
                 "a",
                 {
                   href: bookingUrl({
-                    itineraryCode: sailing.itineraryCode,
+                    itineraryCode: a.itineraryCode,
                     packageId: a.packageId,
                     guestCount,
                     cabinType: data.cabinType,
@@ -250,7 +230,7 @@
               "a",
               {
                 href: bookingUrl({
-                  itineraryCode: itinerary.itineraryCode,
+                  itineraryCode: s.itineraryCode,
                   packageId: s.packageId,
                   guestCount,
                   cabinType: s.cabinType,
@@ -258,12 +238,7 @@
               },
               shortDate(s.sailDate, false),
             ),
-            h(
-              "span",
-              {},
-              s.current ? `${dollars(s.current.perNight)}/night ` : "sold out ",
-              badge(s.deal),
-            ),
+            h("span", {}, s.current ? `${dollars(s.current.perNight)}/night` : "sold out"),
           ),
         ),
       ),
@@ -275,6 +250,7 @@
   function errorText(result) {
     if (result.status === 404) return "CabinSaver isn't tracking this sailing yet.";
     if (result.status === 0) return "Can't reach CabinSaver right now.";
+    if (result.status === 429) return "Too many lookups. Try again in a minute.";
     return result.error || "Something went wrong.";
   }
 

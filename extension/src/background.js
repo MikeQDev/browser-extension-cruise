@@ -19,7 +19,7 @@ async function lookup(path, params) {
     const body = await res.json().catch(() => ({}));
     result = res.ok
       ? { ok: true, data: body }
-      : { ok: false, status: res.status, error: body.error || res.statusText };
+      : { ok: false, status: res.status, error: body.error?.message || res.statusText };
   } catch (error) {
     return { ok: false, status: 0, error: "Price history API unreachable" };
   }
