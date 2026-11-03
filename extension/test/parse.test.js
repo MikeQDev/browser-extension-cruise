@@ -7,6 +7,11 @@ const {
   chartsUrl,
   canEstimateCabins,
   cabinCountParams,
+  isNclSearchPage,
+  cheapestSailing,
+  guestsParam,
+  cardPerNight,
+  priceTint,
 } = require("../src/parse");
 
 test("stateroom booking page yields the sailing", () => {
@@ -189,4 +194,50 @@ test("cabin count params carry the deal finder's fallback codes", () => {
     cabinTypes: "STUDIO",
     guests: 1,
   });
+});
+
+test("only NCL's search page gets card buttons", () => {
+  assert.strictEqual(isNclSearchPage("https://www.ncl.com/vacations"), true);
+  assert.strictEqual(isNclSearchPage("https://www.ncl.com/vacations?ships=JOY"), true);
+  assert.strictEqual(isNclSearchPage("https://www.ncl.com/vacation-builder"), false);
+  assert.strictEqual(isNclSearchPage("https://www.carnival.com/vacations"), false);
+});
+
+test("a card opens on its cheapest priced sailing", () => {
+  const sailing = (sailDate, total) => ({ sailDate, current: total && { total } });
+  const sailings = [sailing("2026-11-16", 259), sailing("2026-11-23", null), sailing("2026-11-30", 199)];
+  assert.strictEqual(cheapestSailing(sailings).sailDate, "2026-11-30");
+  assert.strictEqual(cheapestSailing([sailing("2026-11-23", null)]), null);
+});
+
+test("a card link parses to its itinerary", () => {
+  const parsed = parseUrl("https://www.ncl.com/vacation-builder?itineraryCode=JOY4MIANPINASMIA");
+  assert.strictEqual(parsed.kind, "itinerary");
+  assert.strictEqual(parsed.itineraryCode, "JOY4MIANPINASMIA");
+});
+
+test("card per-night price comes from the card's text", () => {
+  assert.strictEqual(cardPerNight("From $209 PP/USD", "4-Day Bahamas Round-Trip Miami"), 53);
+  assert.strictEqual(cardPerNight("From $1,919", "12-Day Panama Canal"), 160);
+  assert.strictEqual(cardPerNight("Call for price", "4-Day Bahamas"), null);
+  assert.strictEqual(cardPerNight("From $209", "Bahamas"), null);
+});
+
+test("price tints follow the per-night bands", () => {
+  const green = priceTint(100);
+  const yellow = priceTint(101);
+  const orange = priceTint(125);
+  const red = priceTint(150);
+  assert.strictEqual(new Set([green, yellow, orange, red]).size, 4);
+  assert.strictEqual(priceTint(1), green);
+  assert.strictEqual(priceTint(124), yellow);
+  assert.strictEqual(priceTint(149), orange);
+  assert.strictEqual(priceTint(400), red);
+  assert.strictEqual(priceTint(null), null);
+});
+
+test("the guests param is read from the search page URL", () => {
+  assert.strictEqual(guestsParam("https://www.ncl.com/vacations?guests=3"), "3");
+  assert.strictEqual(guestsParam("https://www.ncl.com/vacations"), null);
+  assert.strictEqual(guestsParam("https://www.ncl.com/vacations?guests=abc"), null);
 });

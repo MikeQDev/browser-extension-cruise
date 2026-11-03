@@ -226,7 +226,47 @@
     ...CABIN_CODE_PARAMS[cabinType],
   });
 
-  const api = { parseUrl, bookingUrl, siteName, chartsUrl, canEstimateCabins, cabinCountParams };
+  const isNclSearchPage = (href) => {
+    const url = new URL(href);
+    return LINES.ncl.host.test(url.hostname) && /^\/vacations\/?$/.test(url.pathname);
+  };
+
+  const cheapestSailing = (sailings) =>
+    sailings
+      .filter((s) => s.current)
+      .reduce((best, s) => (!best || s.current.total < best.current.total ? s : best), null);
+
+  const guestsParam = (href) => first(new URL(href).searchParams, ["guests"], GUESTS);
+
+  // Rounds up to match the per-night prices charts reports
+  function cardPerNight(priceText, titleText) {
+    const price = /\$\s*([\d,]+)/.exec(priceText || "");
+    const length = /(\d+)[- ](?:day|night)/i.exec(titleText || "");
+    if (!price || !length || Number(length[1]) === 0) return null;
+    return Math.ceil(Number(price[1].replace(/,/g, "")) / Number(length[1]));
+  }
+
+  function priceTint(perNight) {
+    if (perNight == null) return null;
+    if (perNight <= 100) return "#dcfce7";
+    if (perNight < 125) return "#fef9c3";
+    if (perNight < 150) return "#ffedd5";
+    return "#fee2e2";
+  }
+
+  const api = {
+    parseUrl,
+    bookingUrl,
+    siteName,
+    chartsUrl,
+    canEstimateCabins,
+    cabinCountParams,
+    isNclSearchPage,
+    cheapestSailing,
+    guestsParam,
+    cardPerNight,
+    priceTint,
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.RadarParse = api;
 })(globalThis);

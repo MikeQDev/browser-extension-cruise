@@ -40,6 +40,8 @@ History covers the last 90 record dates, the same window charts gives anonymous 
 
 The URL shapes come from the booking links in `cheapest-ncl/markdown.js`.
 
+Each card on `ncl.com/vacations` also gets a "CabinSaver Price History" button at the bottom that opens the panel on that itinerary's cheapest upcoming date. Panels use the page's guest count, or 2 guests when the URL doesn't set one.
+
 ## Deploy
 
 1. Deploy charts with the new endpoints

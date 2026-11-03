@@ -1,9 +1,22 @@
 (function () {
-  const { parseUrl, bookingUrl, siteName, chartsUrl, canEstimateCabins, cabinCountParams } =
-    globalThis.RadarParse;
+  const {
+    parseUrl,
+    bookingUrl,
+    siteName,
+    chartsUrl,
+    canEstimateCabins,
+    cabinCountParams,
+    isNclSearchPage,
+    cheapestSailing,
+    guestsParam,
+    cardPerNight,
+    priceTint,
+  } = globalThis.RadarParse;
   const { CHARTS_URL, FEATURES } = globalThis.RADAR_CONFIG;
   const STORAGE_KEY = "radarCollapsed";
   const MAX_ITINERARY_ROWS = 8;
+  const DEFAULT_GUESTS = 2;
+  const CARD_NOTE = "Showing this itinerary's cheapest upcoming date.";
 
   const STYLE = `
     :host { all: initial; }
@@ -438,6 +451,10 @@
     body.replaceChildren(...children.flat(Infinity).filter((c) => c != null && c !== false));
   }
 
+  function showFailure(result) {
+    show(h("div", { class: "muted" }, result ? errorText(result) : "Can't reach CabinSaver right now."));
+  }
+
   let requestSeq = 0;
 
   function load(parsed, cabinType) {
@@ -449,15 +466,15 @@
       itineraryCode: parsed.itineraryCode,
       packageId: parsed.packageId,
       sailDate: parsed.sailDate,
-      guestCount: parsed.guestCount,
+      guestCount: parsed.guestCount || DEFAULT_GUESTS,
       cabinType: cabinType || parsed.cabinType,
     };
     chrome.runtime.sendMessage({ type, params }, (result) => {
       // A newer navigation or cabin switch already replaced this request
       if (seq !== requestSeq) return;
-      if (!result) return show(h("div", { class: "muted" }, "Can't reach CabinSaver right now."));
-      if (!result.ok) return show(h("div", { class: "muted" }, errorText(result)));
+      if (!result?.ok) return showFailure(result);
       show(
+        parsed.note && h("div", { class: "muted" }, parsed.note),
         type === "sailing"
           ? renderSailing(parsed.line, result.data, (code) => load(parsed, code))
           : renderItinerary(parsed.line, result.data),
@@ -465,13 +482,107 @@
     });
   }
 
+  // Path of the search page a card opened the panel on, since no URL backs that panel
+  let cardPanelPath = null;
+
+  function openFromCard(link) {
+    const parsed = parseUrl(link.href);
+    if (!parsed) return;
+    chrome.storage.local.set({ [STORAGE_KEY]: false });
+    ensurePanel();
+    panel.classList.remove("collapsed");
+    cardPanelPath = location.pathname;
+    const seq = ++requestSeq;
+    show(h("div", { class: "muted" }, "Checking price history…"));
+    const guestCount = guestsParam(location.href) || DEFAULT_GUESTS;
+    const params = {
+      cruiseLine: parsed.line,
+      itineraryCode: parsed.itineraryCode,
+      guestCount,
+    };
+    chrome.runtime.sendMessage({ type: "itinerary", params }, (result) => {
+      if (seq !== requestSeq) return;
+      if (!result?.ok) return showFailure(result);
+      const sailing = cheapestSailing(result.data.sailings);
+      if (!sailing) return show(renderItinerary(parsed.line, result.data));
+      load({
+        line: parsed.line,
+        kind: "sailing",
+        itineraryCode: parsed.itineraryCode,
+        packageId: sailing.packageId,
+        sailDate: sailing.sailDate,
+        guestCount,
+        note: CARD_NOTE,
+      });
+    });
+  }
+
+  // NCL renders its cards inside shadow roots, which querySelectorAll doesn't enter
+  function cardLinks(root) {
+    const links = [...root.querySelectorAll('a[href^="/vacation-builder?itineraryCode="]')];
+    for (const el of root.querySelectorAll("*")) {
+      if (el.shadowRoot) links.push(...cardLinks(el.shadowRoot));
+    }
+    return links;
+  }
+
+  function addCardButtons() {
+    if (!isNclSearchPage(location.href)) return;
+    const app = document.querySelector("ncl-vacations-app")?.shadowRoot;
+    if (!app) return;
+    for (const link of cardLinks(app)) {
+      const card = link.closest(".card-itinerary__summary");
+      const actions = card?.querySelector(".card-itinerary__summary__body__ctas");
+      if (!actions) continue;
+      let wrapper = actions.nextElementSibling;
+      if (!wrapper?.hasAttribute("data-cabinsaver-card")) {
+        wrapper = h(
+          "div",
+          { "data-cabinsaver-card": "" },
+          h(
+            "button",
+            {
+              type: "button",
+              class: "nds-btn_secondary-outline nds-btn_block nds-btn_size-sm nds-btn",
+              onclick: (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openFromCard(link);
+              },
+            },
+            "CabinSaver Price History",
+          ),
+        );
+        actions.after(wrapper);
+      }
+      // Set every pass, since filters can change a card's price in place. The fixed text
+      // color keeps NCL's hover style from turning the label white on a light tint.
+      const tint = priceTint(
+        cardPerNight(
+          card.querySelector(".price__spotlight__value")?.textContent,
+          card.querySelector(".card-itinerary__summary__header__title")?.textContent,
+        ),
+      );
+      const button = wrapper.firstElementChild;
+      button.style.backgroundColor = tint || "";
+      button.style.color = tint ? "#163354" : "";
+    }
+  }
+
   // Cruise line sites are single-page apps, so navigation doesn't reload this script
   let lastKey = null;
   function check() {
+    addCardButtons();
     const parsed = parseUrl(location.href);
     const key = parsed ? JSON.stringify(parsed) : null;
+    if (!parsed && cardPanelPath && location.pathname !== cardPanelPath) {
+      cardPanelPath = null;
+      requestSeq++;
+      host?.remove();
+    }
     if (key === lastKey) return;
     lastKey = key;
+    cardPanelPath = null;
     if (!parsed) {
       host?.remove();
       return;
